@@ -1,33 +1,25 @@
 package cbr.test.docx.services.Editors.docx;
 
-import org.apache.commons.lang3.StringUtils;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
-import org.docx4j.model.structure.DocumentModel;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.openpackaging.parts.Part;
-import org.docx4j.openpackaging.parts.PartName;
-import org.docx4j.openpackaging.parts.Parts;
-import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
-import org.docx4j.openpackaging.parts.relationships.RelationshipsPart;
-import org.docx4j.relationships.Relationship;
 import org.docx4j.wml.*;
 
-
 import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 public class testWorkTabl {
 
     public WordprocessingMLPackage getTemplate(String name) throws Docx4JException, FileNotFoundException {
-       WordprocessingMLPackage template = WordprocessingMLPackage.load(new FileInputStream(new File(name)));
-       // WordprocessingMLPackage template = WordprocessingMLPackage.load();
+        WordprocessingMLPackage template = WordprocessingMLPackage.load(new FileInputStream(new File(name)));
+        // WordprocessingMLPackage template = WordprocessingMLPackage.load();
         return template;
     }
 
@@ -50,7 +42,7 @@ public class testWorkTabl {
 
     public void writeDocxToStream(WordprocessingMLPackage template, String target// OutputStream outputStream
     ) throws IOException, Docx4JException {
-       // template.save(outputStream);
+        // template.save(outputStream);
         File f = new File(target);
         template.save(f);
     }
@@ -59,52 +51,56 @@ public class testWorkTabl {
     public void fillTemplateBySanctionsData(WordprocessingMLPackage template, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) {
 
         List<Object> elementDocument = template.getMainDocumentPart().getContent();
-        boolean forCopyToGenerationSection = false;
         List<Object> elementForGenerate = new ArrayList();
-        int indexForStartInsert = 0;
+        int startIndexSection = getIndexTextElement(template, startGenerateSectionPlaceholder) + 1;
+        int endIndexSection = getIndexTextElement(template, endGenerateSectionPlaceholder);
 
-        for (int i = 0; i < elementDocument.size(); i++) {
-            Object obj = XmlUtils.unwrap(elementDocument.get(i));
-            if (forCopyToGenerationSection) {
-                if (obj instanceof Text) {
-                    if (((Text) obj).getValue().equals(endGenerateSectionPlaceholder)) {
-                        break;
-                    }
-                }
-                elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
-            }
-            if (obj instanceof Text) {
-                if (((Text) obj).getValue().equals(startGenerateSectionPlaceholder)) {
-                    forCopyToGenerationSection = true;
-                    indexForStartInsert = i;
-                }
-            }
+        for (int i = startIndexSection; i < endIndexSection; i++) {
+            elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
         }
-        List<Object> resultList = new ArrayList();
 
+        List<Object> resultList = new ArrayList();
         for (SectionData sectionData : sectionDataListData) {
             resultList.addAll(fillGeneratedSactions(elementForGenerate, sectionData.getDataToAddForParagraps(), sectionData.getDataToAddForTable()));
         }
 
-        if (indexForStartInsert > 0 && !resultList.isEmpty()) {
-            template.getMainDocumentPart().getContent().addAll(indexForStartInsert, resultList);
+        if (startIndexSection > 0 && !resultList.isEmpty()) {
+            template.getMainDocumentPart().getContent().addAll(startIndexSection, resultList);
         }
 
     }
 
-    private List<Object> fillGeneratedSactions(List<Object> elementDocument, Map<String, String> dataForReplace, List<Map<String, String>> dataToAddForTable) {
-        List<Object> cloneElementDocument = new ArrayList(elementDocument.size());
-        for (Object item : cloneElementDocument) cloneElementDocument.add(XmlUtils.deepCopy(item));
+    private int getIndexTextElement(WordprocessingMLPackage template, String textForSearch) {
+        List<Object> texts = getAllElementFromObject(template.getMainDocumentPart(), Text.class);
 
+        for (Object text : texts) {
+            Text textElement = (Text) text;
+            if (textElement.getValue().equals(textForSearch)) {
+              return   template.getMainDocumentPart().getContent().indexOf(text);
+            }
+        }
+        return -1;
+    }
+
+    private List<Object> cloneList(List<Object> elementDocument) {
+        List<Object> cloneList = new ArrayList(elementDocument.size());
+        for (Object item : elementDocument) cloneList.add(XmlUtils.deepCopy(item));
+        return cloneList;
+    }
+
+    private List<Object> fillGeneratedSactions(List<Object> elementDocument, Map<String, String> dataForReplace, List<Map<String, String>> dataToAddForTable) {
+        List<Object> cloneElementDocument = cloneList(elementDocument);
         for (int i = 0; i < cloneElementDocument.size(); i++) {
-            Object obj = XmlUtils.unwrap(cloneElementDocument.get(i));
-            if ( !dataForReplace.isEmpty() && obj instanceof Text) {
+            Object obj = cloneElementDocument.get(i);
+            if (obj instanceof JAXBElement) obj = ((JAXBElement<?>) obj).getValue();
+
+            if (obj.getClass().equals(Text.class)){
                 Text textElement = (Text) obj;
                 String replacementValue = dataForReplace.get(textElement.getValue());
                 if (replacementValue != null) {
                     textElement.setValue(replacementValue);
                 }
-            } else if (obj instanceof Tbl) {
+            }  else if (obj.getClass().equals(Tbl.class)) {
                 Tbl table = (Tbl) obj;
                 List<Object> rows = getAllElementFromObject(table, Tr.class);
                 for (int j = 1; j < rows.size(); j++) {
@@ -118,6 +114,7 @@ public class testWorkTabl {
                 }
             }
         }
+
         return cloneElementDocument;
     }
 

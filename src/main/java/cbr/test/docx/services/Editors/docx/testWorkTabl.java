@@ -43,7 +43,7 @@ public class testWorkTabl {
 	
 	
 	public void writeDocxToStream(WordprocessingMLPackage template, String target// OutputStream outputStream
-	) throws IOException, Docx4JException {
+	) throws Docx4JException {
 		// template.save(outputStream);
 		File f = new File(target);
 		template.save(f);
@@ -66,8 +66,14 @@ public class testWorkTabl {
 			resultList.addAll(fillGeneratedSactions(elementForGenerate, sectionData.getDataToAddForParagraps(), sectionData.getDataToAddForTable()));
 		}
 		
+		
+		
+		
 		if (startIndexSection > 0 && !resultList.isEmpty()) {
-			template.getMainDocumentPart().getContent().addAll(resultList);
+			for (int i = startIndexSection-1; i < endIndexSection-1; i++){
+				template.getMainDocumentPart().getContent().remove(i);
+			}
+			template.getMainDocumentPart().getContent().addAll(startIndexSection,resultList);
 		}
 		
 	}
@@ -145,11 +151,11 @@ public class testWorkTabl {
 	
 	
 	public static void addRowToTable(Tbl reviewtable, Tr templateRow, Map<String, String> replacements) {
-		Tr workingRow = (Tr) XmlUtils.deepCopy(templateRow);
+		Tr workingRow = XmlUtils.deepCopy(templateRow);
 		List textElements = getAllElementFromObject(workingRow, Text.class);
 		for (Object object : textElements) {
 			Text text = (Text) object;
-			String replacementValue = (String) replacements.get(text.getValue());
+			String replacementValue = replacements.get(text.getValue());
 			if (replacementValue != null)
 				text.setValue(replacementValue);
 		}

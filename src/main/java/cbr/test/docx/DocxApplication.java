@@ -16,9 +16,9 @@ import java.util.*;
 public class DocxApplication {
 
     public static void main(String[] args) throws IOException, Docx4JException, JAXBException {
-      //  SpringApplication.run(DocxApplication.class, args);
+        //SpringApplication.run(DocxApplication.class, args);
         testWorkTabl workTabl = new testWorkTabl();
-        WordprocessingMLPackage template =  workTabl.getTemplate("C:\\Users\\Серяковы\\Desktop\\template.docx");
+        WordprocessingMLPackage template =  workTabl.getTemplate("C:\\Users\\69seryakovav\\Desktop\\template.docx");
 
 
         List<SectionData> sectionDataList = new ArrayList<>();
@@ -43,8 +43,8 @@ public class DocxApplication {
         sectionDataList.add(new SectionData(Arrays.asList(repl1,repl2,repl3),null));
 
         workTabl.fillTemplateBySanctionsData(template,sectionDataList,"START_SECTIONS", "END_SECTION");
-
-        workTabl.writeDocxToStream(template,"C:\\Users\\Серяковы\\Desktop\\template2.docx");
+          List<Object> objectList = template.getMainDocumentPart().getContent();
+        workTabl.writeDocxToStream(template,"C:\\Users\\69seryakovav\\Desktop\\template2.docx");
         //workTabl.replaceTable(new String[]{"SJ_FUNCTION","SJ_DESC","SJ_PERIOD"}, Arrays.asList(repl1,repl2,repl3),template);
 
 

@@ -1,5 +1,6 @@
 package cbr.test.docx.services.Editors.docx;
 
+import net.bytebuddy.description.method.ParameterList;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
@@ -50,30 +51,32 @@ public class testWorkTabl {
 	}
 	
 	
-	public void fillTemplateBySanctionsData(WordprocessingMLPackage template, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
+	public void fillTemplateBySanctionsData(WordprocessingMLPackage template, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder,String startSeparateElement, String endSeparateElement) throws JAXBException, XPathBinderAssociationIsPartialException {
 		
 		List<Object> elementDocument = template.getMainDocumentPart().getContent();
 		List<Object> elementForGenerate = new ArrayList();
-		int startIndexSection = getIndexTextElement(template, startGenerateSectionPlaceholder) + 1;
+		int startIndexForInsertSection = getIndexTextElement(template, startGenerateSectionPlaceholder) + 1;
 		int endIndexSection = getIndexTextElement(template, endGenerateSectionPlaceholder);
 		
-		for (int i = startIndexSection; i < endIndexSection; i++) {
+		for (int i = startIndexForInsertSection; i < endIndexSection; i++) {
 			elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
 		}
 		
 		List<Object> resultList = new ArrayList();
 		for (SectionData sectionData : sectionDataListData) {
-			resultList.addAll(fillGeneratedSactions(elementForGenerate, sectionData.getDataToAddForParagraps(), sectionData.getDataToAddForTable()));
+			resultList.addAll(fillGeneratedSactions(elementForGenerate, sectionData.getDataToAddForParagraps(), sectionData.getDataToAddForTable(), startSeparateElement, endSeparateElement));
 		}
 		
 		
-		
-		
-		if (startIndexSection > 0 && !resultList.isEmpty()) {
-			for (int i = startIndexSection-1; i < endIndexSection-1; i++){
-				template.getMainDocumentPart().getContent().remove(i);
+		if (startIndexForInsertSection > 0 && !resultList.isEmpty()) {
+			int startSection = 1;
+			int endSection = 1;
+			int lengthForRemove = endIndexSection - startSection + endSection;
+			int startForRemove = startIndexForInsertSection - 1;
+			for (int i = startForRemove; i <= lengthForRemove; i++) {
+				template.getMainDocumentPart().getContent().remove(startForRemove);
 			}
-			template.getMainDocumentPart().getContent().addAll(startIndexSection,resultList);
+			template.getMainDocumentPart().getContent().addAll(startIndexForInsertSection, resultList);
 		}
 		
 	}
@@ -97,6 +100,32 @@ public class testWorkTabl {
 					}
 					
 				}
+			} else if(textForSearch.contains(textValue)){
+				Object objParentText = text.getParent();
+				if(objParentText instanceof R) {
+					 Object objParenrt = ((R) objParentText).getParent();
+					if (objParenrt instanceof P) {
+						List<Object> paragraphElements = ((P) objParenrt).getContent();
+						StringBuilder stringBuilder = new StringBuilder();
+						
+						for (Object paragrapsObject : paragraphElements) {
+							if (paragrapsObject instanceof R) {
+								List<Object> objectList = ((R) paragrapsObject).getContent();
+								for (Object elementR : objectList) {
+									
+									Text textElement = (Text) ((JAXBElement) elementR).getValue();
+									stringBuilder.append(textElement.getValue());
+									
+								}
+							}
+						}
+						
+						if(stringBuilder.toString().equals(textForSearch)){
+							index = template.getMainDocumentPart().getContent().indexOf(objParenrt);
+							return index;
+						}
+					}
+				}
 			}
 		}
 		
@@ -109,32 +138,59 @@ public class testWorkTabl {
 		return cloneList;
 	}
 	
-	private List<Object> fillGeneratedSactions(List<Object> elementDocument, Map<String, String> dataForReplace, List<Map<String, String>> dataToAddForTable) {
+	private List<Object> fillGeneratedSactions(List<Object> elementDocument, Map<String, String> dataForReplace, List<Map<String, String>> dataToAddForTable, String startSeparateElement, String endSeparateElement) {
 		List<Object> cloneElementDocument = cloneList(elementDocument);
 		for (int i = 0; i < cloneElementDocument.size(); i++) {
 			Object obj = cloneElementDocument.get(i);
 			
-			if (dataForReplace !=null && obj instanceof P) {
-				List<Object> paragraphs = ((P) obj).getContent();
-				for (Object paragrapsObject : paragraphs) {
+			if (dataForReplace != null && obj instanceof P) {
+				List<Object> paragraphElements = ((P) obj).getContent();
+				StringBuilder stringBuilder = new StringBuilder();
+				List<Object> listForRemove = new ArrayList<>();
+				boolean rangePlaceholderText = false;
+				
+				for (Object paragrapsObject : paragraphElements) {
 					if (paragrapsObject instanceof R) {
 						List<Object> objectList = ((R) paragrapsObject).getContent();
 						for (Object elementR : objectList) {
-							if (elementR instanceof Text) {
-								Text textElement = (Text) elementR;
+							
+							Text textElement = (Text) ((JAXBElement) elementR).getValue();
+							
+							if (textElement.getValue().contains(startSeparateElement) && textElement.getValue().contains(endSeparateElement)) {
 								String replacementValue = dataForReplace.get(textElement.getValue());
 								if (replacementValue != null) {
 									textElement.setValue(replacementValue);
 								}
+							} else if (textElement.getValue().contains(startSeparateElement)) {
+								stringBuilder.append(textElement.getValue());
+								listForRemove.add(textElement.getParent());
+								rangePlaceholderText = true;
+								
+							} else if (textElement.getValue().contains(endSeparateElement)) {
+								rangePlaceholderText = false;
+								stringBuilder.append(textElement.getValue());
+								String replacementOfCustomValue = dataForReplace.get(stringBuilder.toString());
+								if (replacementOfCustomValue != null) {
+									textElement.setValue(replacementOfCustomValue);
+								}
+								
+							} else if (rangePlaceholderText) {
+								stringBuilder.append(textElement.getValue());
+								listForRemove.add(textElement.getParent());
 							}
+							
+							
 						}
+						
 					}
 				}
+				
+				((P) obj).getContent().removeAll(listForRemove);
 				
 			} else if (obj instanceof JAXBElement) {
 				Tbl table = (Tbl) ((JAXBElement) obj).getValue();
 				List<Object> rows = getAllElementFromObject(table, Tr.class);
-				for (int j = 0, k = 1; j < rows.size()-1; j++, k++) {
+				for (int j = 0, k = 1; j < rows.size() - 1; j++, k++) {
 					
 					Tr templateRow = (Tr) rows.get(k);
 					Map<String, String> replacements = dataToAddForTable.get(j);

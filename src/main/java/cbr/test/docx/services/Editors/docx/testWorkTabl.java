@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class testWorkTabl {
 	
@@ -49,8 +50,8 @@ public class testWorkTabl {
 	private List<Object> getListDeepCopyElementFromTemplate(WordprocessingMLPackage template, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
 		List<Object> elementForGenerate = new ArrayList();
 		List<Object> elementDocument = template.getMainDocumentPart().getContent();
-		startIndexForInsertSection = getIndexTextElement(template, startGenerateSectionPlaceholder) + 1 > 0 ? getIndexTextElement(template, startGenerateSectionPlaceholder) + 1 : 0;
-		endIndexSection = getIndexTextElement(template, endGenerateSectionPlaceholder) > 0 ? getIndexTextElement(template, endGenerateSectionPlaceholder) : 0;
+		startIndexForInsertSection = getIndexTextElement(template, startGenerateSectionPlaceholder);
+		endIndexSection = getIndexTextElement(template, endGenerateSectionPlaceholder);
 		
 		for (int i = startIndexForInsertSection; i < endIndexSection; i++) {
 			elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
@@ -80,33 +81,15 @@ public class testWorkTabl {
 	}
 	
 	private int getIndexTextElement(WordprocessingMLPackage template, String textForSearch) throws JAXBException, XPathBinderAssociationIsPartialException {
-		int index = -1;
-		String textNodesXPath = "//w:t";
-		List<Object> textNodes = template.getMainDocumentPart()
-				.getJAXBNodesViaXPath(textNodesXPath, false);
-		for (Object obj : textNodes) {
-			Text text = (Text) ((JAXBElement) obj).getValue();
-			String textValue = text.getValue();
-			
-			if (textValue.equals(textForSearch)) {
-				Object objparent = text.getParent();
-				if (objparent instanceof R) {
-					Object objectParent2 = ((R) objparent).getParent();
-					if (objectParent2 instanceof P) {
-						index = template.getMainDocumentPart().getContent().indexOf(objectParent2);
-						return index;
-					}
-					
-				}
-			} else if (textForSearch.contains(textValue)) {
-				index = getIndexFromCustomParagraphsTextElements(template, text, textForSearch);
-				if (index > -1) {
-					return index;
-				}
-			}
-		}
-		
-		return index;
+
+		final String XPATH_TO_SELECT_TEXT_NODES = "//w:p";
+		final List<Object> jaxbNodes = template.getMainDocumentPart().getJAXBNodesViaXPath(XPATH_TO_SELECT_TEXT_NODES, false);
+		List<String> list = jaxbNodes.stream().map(Object::toString).collect(Collectors.toList());
+
+		return list.indexOf(textForSearch);
+
+
+
 	}
 	
 	private int getIndexFromCustomParagraphsTextElements(WordprocessingMLPackage template, Text text, String textForSearch) {

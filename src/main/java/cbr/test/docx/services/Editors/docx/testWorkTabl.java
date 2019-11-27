@@ -50,8 +50,8 @@ public class testWorkTabl {
 	private List<Object> getListDeepCopyElementFromTemplate(WordprocessingMLPackage template, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
 		List<Object> elementForGenerate = new ArrayList();
 		List<Object> elementDocument = template.getMainDocumentPart().getContent();
-		startIndexForInsertSection = getIndexTextElement(template, startGenerateSectionPlaceholder);
-		endIndexSection = getIndexTextElement(template, endGenerateSectionPlaceholder);
+		startIndexForInsertSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(startGenerateSectionPlaceholder);
+		endIndexSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(endGenerateSectionPlaceholder);
 		
 		for (int i = startIndexForInsertSection; i < endIndexSection; i++) {
 			elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
@@ -78,48 +78,6 @@ public class testWorkTabl {
 			}
 			template.getMainDocumentPart().getContent().addAll(startIndexForInsertSection, resultList);
 		}
-	}
-	
-	private int getIndexTextElement(WordprocessingMLPackage template, String textForSearch) throws JAXBException, XPathBinderAssociationIsPartialException {
-
-		final String XPATH_TO_SELECT_TEXT_NODES = "//w:p";
-		final List<Object> jaxbNodes = template.getMainDocumentPart().getJAXBNodesViaXPath(XPATH_TO_SELECT_TEXT_NODES, false);
-		List<String> list = jaxbNodes.stream().map(Object::toString).collect(Collectors.toList());
-
-		return list.indexOf(textForSearch);
-
-
-
-	}
-	
-	private int getIndexFromCustomParagraphsTextElements(WordprocessingMLPackage template, Text text, String textForSearch) {
-		int index = -1;
-		Object objParentText = text.getParent();
-		if (objParentText instanceof R) {
-			Object objParenrt = ((R) objParentText).getParent();
-			if (objParenrt instanceof P) {
-				List<Object> paragraphElements = ((P) objParenrt).getContent();
-				StringBuilder stringBuilder = new StringBuilder();
-				
-				for (Object paragrapsObject : paragraphElements) {
-					if (paragrapsObject instanceof R) {
-						List<Object> objectList = ((R) paragrapsObject).getContent();
-						for (Object elementR : objectList) {
-							
-							Text textElement = (Text) ((JAXBElement) elementR).getValue();
-							stringBuilder.append(textElement.getValue());
-							
-						}
-					}
-				}
-				
-				if (stringBuilder.toString().equals(textForSearch)) {
-					index = template.getMainDocumentPart().getContent().indexOf(objParenrt);
-					return index;
-				}
-			}
-		}
-		return index;
 	}
 	
 	private List<Object> fillGeneratedSanctions(List<Object> elementDocument, Map<String, String> dataForReplace, List<Map<String, String>> dataToAddForTable, String startSeparateElement, String endSeparateElement) {
@@ -231,15 +189,4 @@ public class testWorkTabl {
 		return result;
 	}
 	
-	private P createPageBreak() {
-		Br br = Context.getWmlObjectFactory().createBr();
-		br.setType(STBrType.PAGE);
-		
-		R run = Context.getWmlObjectFactory().createR();
-		run.getContent().add(br);
-		
-		P paragraph = Context.getWmlObjectFactory().createP();
-		paragraph.getContent().add(run);
-		return paragraph;
-	}
 }

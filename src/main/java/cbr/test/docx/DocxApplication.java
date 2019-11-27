@@ -18,7 +18,7 @@ public class DocxApplication {
     public static void main(String[] args) throws IOException, Docx4JException, JAXBException {
         //SpringApplication.run(DocxApplication.class, args);
         testWorkTabl workTabl = new testWorkTabl();
-        WordprocessingMLPackage template =  workTabl.getTemplate("C:\\Users\\Серяковы\\IdeaProjects\\docx\\src\\main\\resources\\templates\\template.docx");
+        WordprocessingMLPackage template =  workTabl.getTemplate("D:\\gitHub\\docx\\src\\main\\resources\\templates\\template.docx");
 
 
         List<SectionData> sectionDataList = new ArrayList<>();

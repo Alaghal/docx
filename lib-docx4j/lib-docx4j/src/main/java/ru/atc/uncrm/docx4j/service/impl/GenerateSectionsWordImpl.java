@@ -24,18 +24,19 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
     private final String endSeparateElement = "%>";
 
     @Override
-    public ByteArrayOutputStream process(ByteArrayOutputStream outputStream, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, Docx4JException {
+    public void process(ByteArrayOutputStream outputStream, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, Docx4JException {
         WordprocessingMLPackage template = getTemplate(outputStream);
+        List<Object> listElement =  getListDeepCopyElementFromTemplate(template,startGenerateSectionPlaceholder,endGenerateSectionPlaceholder);
 
-        //List<Object> listElement =  getListDeepCopyElementFromTemplate(template,startGenerateSectionPlaceholder,endGenerateSectionPlaceholder);
+        listElement = generateElementBySectionData(sectionDataListData, listElement);
 
-        //listElement = generateElementBySectionData(sectionDataListData, listElement);
+        insertGeneratedElementIntoTemplate(template, listElement);
 
-       // insertGeneratedElementIntoTemplate(template, listElement);
+        //template.getMainDocumentPart().addParagraphOfText("Hello Word by RCR!");
 
-        template.getMainDocumentPart().addParagraphOfText("Hello Word by RCR!");
+       // writeDocxToStream(template, outputStream);
+        writeDocxToStream(template,"curator.docx");
 
-      return writeDocxToStream(template, outputStream);
     }
 
     private WordprocessingMLPackage getTemplate(ByteArrayOutputStream outputStream) throws  Docx4JException {
@@ -43,12 +44,14 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
         return template;
     }
 
+    public void writeDocxToStream(WordprocessingMLPackage template, String target) throws Docx4JException {
+        File f = new File(target);
+        template.save(f);
+    }
 
-
-    private ByteArrayOutputStream writeDocxToStream(WordprocessingMLPackage template, ByteArrayOutputStream target) throws Docx4JException {
+    private void writeDocxToStream(WordprocessingMLPackage template, ByteArrayOutputStream target) throws Docx4JException {
 
         template.save(target);
-        return target;
     }
 
     private List<Object> getListDeepCopyElementFromTemplate(WordprocessingMLPackage template, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
@@ -57,7 +60,7 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
         startIndexForInsertSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(startGenerateSectionPlaceholder);
         endIndexSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(endGenerateSectionPlaceholder);
 
-        for (int i = startIndexForInsertSection+1; i <= endIndexSection -1; i++) {
+        for (int i = startIndexForInsertSection+1; i <= endIndexSection; i++) {
             elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
         }
         return elementForGenerate;

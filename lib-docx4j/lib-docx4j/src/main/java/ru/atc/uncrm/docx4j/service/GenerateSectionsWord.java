@@ -9,5 +9,5 @@ import java.util.List;
 
 public interface GenerateSectionsWord {
 
-    ByteArrayOutputStream process(ByteArrayOutputStream outputStream, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, Docx4JException;
+    void process(ByteArrayOutputStream outputStream, List<SectionData> sectionDataListData, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, Docx4JException;
 }

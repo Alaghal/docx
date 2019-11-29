@@ -3,7 +3,6 @@ package ru.atc.uncrm.docx4j.component.impl;
 
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import ru.atc.template.model.TemplateModel;
-import ru.atc.template.model.lazy.LazyMap;
 import ru.atc.uncrm.docx4j.component.SectionData;
 import ru.atc.uncrm.docx4j.component.WriterDataSectionsForTemplates;
 import ru.atc.uncrm.docx4j.service.DataParser;
@@ -15,7 +14,6 @@ import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class DkiduWordWriterDataSectionsForTemplates implements WriterDataSectionsForTemplates {
@@ -98,7 +96,7 @@ public class DkiduWordWriterDataSectionsForTemplates implements WriterDataSectio
         List<SectionData> dataList = getDataFromModel();
         GenerateSectionsWord generateSectionsWord =  new GenerateSectionsWordImpl();
 
-        return generateSectionsWord.process(outputStream,dataList,startGenerateSectionPlaceholder,endGenerateSectionPlaceholder);
-
+        generateSectionsWord.process(outputStream,dataList,startGenerateSectionPlaceholder,endGenerateSectionPlaceholder);
+        return outputStream;
     }
 }

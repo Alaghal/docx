@@ -1,4 +1,4 @@
-package ru.atc.uncrm.docx4j.component;
+package cbr.test.docx.services.Editors.docx.component;
 
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 

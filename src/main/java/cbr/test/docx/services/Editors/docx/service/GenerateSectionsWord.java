@@ -1,7 +1,8 @@
-package ru.atc.uncrm.docx4j.service;
+package cbr.test.docx.services.Editors.docx.service;
 
+import cbr.test.docx.services.Editors.docx.component.SectionData;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
-import ru.atc.uncrm.docx4j.component.SectionData;
+//import ru.atc.uncrm.docx4j.component.SectionData;
 
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayOutputStream;

@@ -1,12 +1,14 @@
-package ru.atc.uncrm.docx4j.service.impl;
+package cbr.test.docx.services.Editors.docx.service.impl;
 
+import cbr.test.docx.services.Editors.docx.component.SectionData;
+import cbr.test.docx.services.Editors.docx.service.GenerateSectionsWord;
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.XPathBinderAssociationIsPartialException;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.*;
-import ru.atc.uncrm.docx4j.component.SectionData;
-import ru.atc.uncrm.docx4j.service.GenerateSectionsWord;
+//import ru.atc.uncrm.docx4j.component.SectionData;
+//import ru.atc.uncrm.docx4j.service.GenerateSectionsWord;
 
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -18,7 +20,7 @@ import java.util.stream.Collectors;
 
 
 public class GenerateSectionsWordImpl implements GenerateSectionsWord {
-    private  int startIndexForInsertSection = -1;
+    private  int startIndexSection = -1;
     private  int endIndexSection = -1;
     private final String startSeparateElement  = "<%";
     private final String endSeparateElement = "%>";
@@ -34,7 +36,7 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
 
         //template.getMainDocumentPart().addParagraphOfText("Hello Word by RCR!");
 
-       // writeDocxToStream(template, outputStream);
+       // writeDocxToStream(template, outputStream);ераенкевкевапвпа
         writeDocxToStream(template,"curator.docx");
 
     }
@@ -44,56 +46,67 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
         return template;
     }
 
+    public WordprocessingMLPackage getTemplate(String path) throws  Docx4JException {
+        WordprocessingMLPackage template = WordprocessingMLPackage.load(new File(path));
+        return template;
+    }
+
     public void writeDocxToStream(WordprocessingMLPackage template, String target) throws Docx4JException {
         File f = new File(target);
         template.save(f);
     }
 
     private void writeDocxToStream(WordprocessingMLPackage template, ByteArrayOutputStream target) throws Docx4JException {
-
         template.save(target);
     }
 
-    private List<Object> getListDeepCopyElementFromTemplate(WordprocessingMLPackage template, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
+    public List<Object> getListDeepCopyElementFromTemplate(WordprocessingMLPackage template, String startGenerateSectionPlaceholder, String endGenerateSectionPlaceholder) throws JAXBException, XPathBinderAssociationIsPartialException {
         List<Object> elementForGenerate = new ArrayList();
         List<Object> elementDocument = template.getMainDocumentPart().getContent();
-        startIndexForInsertSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(startGenerateSectionPlaceholder);
+        startIndexSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(startGenerateSectionPlaceholder);
         endIndexSection = elementDocument.stream().map(Object::toString).collect(Collectors.toList()).indexOf(endGenerateSectionPlaceholder);
+        int nextIndexAfterStartIndexSection = startIndexSection + 1;
 
-        for (int i = startIndexForInsertSection+1; i <= endIndexSection; i++) {
+        for (int i = nextIndexAfterStartIndexSection; i < endIndexSection ; i++) {
             elementForGenerate.add(XmlUtils.deepCopy(elementDocument.get(i)));
         }
+
         return elementForGenerate;
     }
 
-    private List<Object> generateElementBySectionData(List<SectionData> sectionDataListData, List<Object> elementForGenerate) {
+    public List<Object> generateElementBySectionData(List<SectionData> sectionDataListData, List<Object> elementForGenerate) {
         List<Object> resultList = new ArrayList();
+
+
+
         for (SectionData sectionData : sectionDataListData) {
-            resultList.addAll(fillGeneratedSanctions(elementForGenerate, sectionData.getDataToAddForParagraphs(), sectionData.getDataToAddForTable()));
+            resultList.addAll(fillGeneratedSanctions(elementForGenerate, sectionData.getData()));
         }
+
         return resultList;
     }
 
-    private void insertGeneratedElementIntoTemplate(WordprocessingMLPackage template, List<Object> resultList) {
-        if (startIndexForInsertSection > 0 && endIndexSection > 0 && !resultList.isEmpty()) {
 
-            for (int i = startIndexForInsertSection; i <= endIndexSection; i++) {
-                template.getMainDocumentPart().getContent().remove(i);
+
+    public void insertGeneratedElementIntoTemplate(WordprocessingMLPackage template, List<Object> resultList) {
+        if (!resultList.isEmpty()) {
+            for (int i = startIndexSection; i<= endIndexSection; i++){
+                template.getMainDocumentPart().getContent().remove(startIndexSection);
             }
-            template.getMainDocumentPart().getContent().addAll(startIndexForInsertSection, resultList);
+            template.getMainDocumentPart().getContent().addAll(startIndexSection, resultList);
         }
     }
 
 
-    private List<Object> fillGeneratedSanctions(List<Object> elementDocument, Map<String, Object> dataForParagraphsReplace, List<Map<String, Object>> dataToAddForTable) {
+    private List<Object> fillGeneratedSanctions(List<Object> elementDocument, Map<String, Object>data) {
         List<Object> cloneElementDocument = cloneList(elementDocument);
         for (int i = 0; i < cloneElementDocument.size(); i++) {
             Object obj = cloneElementDocument.get(i);
 
-            if (!dataForParagraphsReplace.isEmpty() && obj instanceof P) {
-                replaceParagraphsText(obj, dataForParagraphsReplace);
+            if (obj instanceof P) {
+                replaceParagraphsText(obj, data);
             } else if (obj instanceof JAXBElement) {
-                replaceTableData(obj, dataToAddForTable);
+                replaceTableData(obj, data);
             }
         }
 
@@ -107,7 +120,7 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
     }
 
 
-    private void replaceTableData(Object obj, List<Map<String, Object>> dataToAddForTable) {
+    private void replaceTableData(Object obj, Map<String, Object> dataToAddForTable) {
         Tbl table = (Tbl) ((JAXBElement) obj).getValue();
         List<Object> rows = getAllElementFromObject(table, Tr.class);
         for (int j = 0; j < rows.size(); j++) {
@@ -121,15 +134,11 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
 
     }
 
-    public  void addRowToTable(Tbl reviewtable, Tr templateRow, List<Map<String, Object>> replacements) {
+    public  void addRowToTable(Tbl reviewtable, Tr templateRow, Map<String, Object> replacements) {
         Tr workingRow = XmlUtils.deepCopy(templateRow);
         List pElements = getAllElementFromObject(workingRow, P.class);
         for (Object object : pElements) {
-
-            for (Map <String,Object> map:replacements) {
-
-                replaceParagraphsText(object,map);
-            }
+            replaceParagraphsText(object,replacements);
 
         }
 
@@ -185,7 +194,7 @@ public class GenerateSectionsWordImpl implements GenerateSectionsWord {
 
     private String deleteSeparateElementIntoText(String text){
 
-        return text.replace(startSeparateElement,"").replace(endSeparateElement,"");
+        return text.replace(startSeparateElement,"").replace(endSeparateElement,"").trim();
     }
 
 
